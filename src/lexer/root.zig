@@ -4,83 +4,18 @@ const ArrayList = std.ArrayList;
 const eql = std.mem.eql;
 const indexOf = std.mem.indexOf;
 
-const ParserErrors = error{ UnterminatedString, UnknownToken };
+pub const TokenType = @import("token.zig").TokenType;
+pub const Token = @import("token.zig").Token;
+pub const LexerErrors = @import("errors.zig").LexerErrors;
 
-pub const TokenType = enum {
-    import_std,
-    import_relative,
-    data_section,
-    bss_section,
-    constant_declare, // `equ` in asm
-    byte_declare,
-    word_declare,
-    dword_declare,
-    function_declare,
-    open_scope,
-    end_scope,
-    line_terminator,
-    identifier,
-    // TODO: ADD BELLOW TO NEXT FUNCTIONS
-    string,
-
-    pub fn fromString(str: []const u8) TokenType {
-        const tokens = [_]struct { []const u8, TokenType }{
-            .{ "@std.import", .import_std },
-            .{ "@rel.import", .import_relative },
-            .{ "section .data", .data_section },
-            .{ "section .bss", .bss_section },
-            .{ "const", .constant_declare },
-            .{ "byte", .byte_declare },
-            .{ "word", .word_declare },
-            .{ "dword", .dword_declare },
-            .{ "fn", .function_declare },
-            .{ "{", .open_scope },
-            .{ "}", .end_scope },
-            .{ ";", .line_terminator },
-        };
-
-        for (tokens) |pair| {
-            if (std.mem.eql(u8, pair[0], str)) {
-                return pair[1];
-            }
-        }
-        return .identifier;
-    }
-
-    pub fn strRepr(tok: TokenType) []const u8 {
-        return switch (tok) {
-            .import_std => "import_std",
-            .import_relative => "import_relative",
-            .data_section => "data_section",
-            .bss_section => "bss_section",
-            .constant_declare => "constant_declare",
-            .byte_declare => "byte_declare",
-            .word_declare => "word_declare",
-            .dword_declare => "dword_declare",
-            .function_declare => "function_declare",
-            .open_scope => "open_scope",
-            .end_scope => "end_scope",
-            .line_terminator => "line_terminator",
-            .identifier => "identifier",
-            .string => "string",
-        };
-    }
-};
-
-pub const Token = struct { Type: TokenType, Data: ?[]const u8 = null, Line: u32 = 0, Column: u32 = 0 };
-
-// fn getToken(buffer: []u8, index: usize) !Token {
-//     if std.ascii.isAlphabetic(c: u8)
-// }
-
-pub const Parser = struct {
+pub const Lexer = struct {
     rootfile: []const u8,
     allocator: std.mem.Allocator,
     filedata: ?[]u8 = null,
     tokens: ?std.ArrayList(Token) = null,
     currLine: u32 = 0,
 
-    pub fn parse(self: *Parser) !void {
+    pub fn tokenize(self: *Lexer) !void {
         const file = try std.fs.cwd().openFile(self.rootfile, .{});
         defer file.close();
         self.filedata = try file.readToEndAlloc(self.allocator, std.math.maxInt(usize));
@@ -121,7 +56,7 @@ pub const Parser = struct {
         return;
     }
 
-    pub fn stringHandler(self: *Parser, start_index: usize) !usize {
+    pub fn stringHandler(self: *Lexer, start_index: usize) LexerErrors!usize {
         var end_index: usize = start_index + 1;
         const filedata = self.filedata.?;
 
@@ -130,7 +65,7 @@ pub const Parser = struct {
                 filedata[end_index] == '\n' or
                 end_index + 1 >= filedata.len)
             {
-                return ParserErrors.UnterminatedString;
+                return LexerErrors.UnterminatedString;
             }
         }
         end_index += 1;
@@ -139,14 +74,14 @@ pub const Parser = struct {
         return end_index - 1;
     }
 
-    pub fn importHandler(self: *Parser, start_index: usize) !usize {
+    pub fn importHandler(self: *Lexer, start_index: usize) LexerErrors!usize {
         const relEnd = indexOf(u8, self.filedata.?[start_index + 1 ..], " ").?;
         const tokenEnd = relEnd + 1 + start_index;
         const tokenSlice = self.filedata.?[start_index..tokenEnd];
 
         const importType = TokenType.fromString(tokenSlice);
         if (importType == TokenType.identifier)
-            return ParserErrors.UnknownToken;
+            return LexerErrors.UnknownToken;
 
         try self.tokens.?.append(Token{ .Type = importType, .Data = tokenSlice, .Line = self.currLine });
         return tokenEnd;
