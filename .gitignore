@@ -6,3 +6,5 @@
 !tests/**
 !build.zig
 !build.zig.zon
+!lang-snippets
+!lang-snippets/test-*
