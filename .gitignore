@@ -2,5 +2,7 @@
 !.gitignore
 !src/
 !src/**
+!tests/
+!tests/**
 !build.zig
 !build.zig.zon
