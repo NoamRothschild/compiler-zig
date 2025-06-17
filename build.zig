@@ -34,6 +34,12 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    const parser_mod = b.createModule(.{
+        .root_source_file = b.path("src/parser/root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
     // We will also create a module for our other entry point, 'main.zig'.
     const exe_mod = b.createModule(.{
         // `root_source_file` is the Zig "entry point" of the module. If a module
@@ -50,13 +56,14 @@ pub fn build(b: *std.Build) void {
     // file path. In this case, we set up `exe_mod` to import `lexer_mod`.
     exe_mod.addImport("lexer", lexer_mod);
     exe_mod.addImport("ast", ast_mod);
+    exe_mod.addImport("parser", parser_mod);
 
     // Now, we will create a static library based on the module we created above.
     // This creates a `std.Build.Step.Compile`, which is the build step responsible
     // for actually invoking the compiler.
     const lexer_lib = b.addLibrary(.{
         .linkage = .static,
-        .name = "compiler",
+        .name = "compiler_lexer",
         .root_module = lexer_mod,
     });
 
@@ -67,11 +74,19 @@ pub fn build(b: *std.Build) void {
 
     const ast_lib = b.addLibrary(.{
         .linkage = .static,
-        .name = "compiler",
+        .name = "compiler_ast",
         .root_module = ast_mod,
     });
 
     b.installArtifact(ast_lib);
+
+    const parser_lib = b.addLibrary(.{
+        .linkage = .static,
+        .name = "compiler_parser",
+        .root_module = parser_mod,
+    });
+
+    b.installArtifact(parser_lib);
 
     // This creates another `std.Build.Step.Compile`, but this one builds an executable
     // rather than a static library.
@@ -118,6 +133,10 @@ pub fn build(b: *std.Build) void {
         .root_module = ast_mod,
     }));
 
+    const run_parser_lib_unit_tests = b.addRunArtifact(b.addTest(.{
+        .root_module = parser_mod,
+    }));
+
     const exe_unit_tests = b.addTest(.{
         .root_module = exe_mod,
     });
@@ -130,5 +149,6 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_lexer_lib_unit_tests.step);
     test_step.dependOn(&run_ast_lib_unit_tests.step);
+    test_step.dependOn(&run_parser_lib_unit_tests.step);
     test_step.dependOn(&run_exe_unit_tests.step);
 }

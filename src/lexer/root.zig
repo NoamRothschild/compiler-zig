@@ -13,7 +13,7 @@ pub const Lexer = struct {
     allocator: std.mem.Allocator,
     filedata: ?[]const u8 = null,
     forceFile: bool = true,
-    tokens: ?std.ArrayList(Token) = null,
+    tokens: std.ArrayList(Token) = undefined,
     currLine: u32 = 0,
     index: usize = 0,
 
@@ -50,7 +50,7 @@ pub const Lexer = struct {
     }
 
     pub fn addToken(self: *Lexer, Type: TokenType, Data: ?[]const u8) LexerErrors!void {
-        try self.tokens.?.append(Token{ .Type = Type, .Data = Data, .Line = self.currLine });
+        try self.tokens.append(Token{ .Type = Type, .Data = Data, .Line = self.currLine });
     }
 
     pub fn identifierHandler(self: *Lexer) LexerErrors!void {
@@ -167,12 +167,12 @@ pub const Lexer = struct {
 //         return err;
 //     };
 
-//     for (lexer.tokens.?.items) |tok| {
+//     for (lexer.tokens.items) |tok| {
 //         const formatted = try tok.toString(allocator);
 //         defer allocator.free(formatted);
 //         std.debug.print("{s}", .{formatted});
 //     }
 
-//     defer lexer.tokens.?.deinit();
-//     try testing.expect(std.mem.eql(Token, expected.items[0..], lexer.tokens.?.items[0..]));
+//     defer lexer.tokens.deinit();
+//     try testing.expect(std.mem.eql(Token, expected.items[0..], lexer.tokens.items[0..]));
 // }

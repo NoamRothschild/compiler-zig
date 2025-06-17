@@ -10,6 +10,8 @@ pub const TokenType = enum {
     function_declare,
     open_scope,
     end_scope,
+    open_args,
+    end_args,
     line_terminator,
     identifier,
     stack_variable,
@@ -27,6 +29,12 @@ pub const TokenType = enum {
     equality_check,
     inequality_check,
     number,
+    and_,
+    or_,
+    less,
+    less_equals,
+    greater,
+    greater_equals,
 
     // TODO: ADD BELLOW TO NEXT FUNCTIONS
     string,
@@ -69,6 +77,12 @@ pub const TokenType = enum {
             .{ "=", .assign },
             .{ "==", .equality_check },
             .{ "!=", .inequality_check },
+            .{ "<", .less },
+            .{ "<=", .less_equals },
+            .{ ">", .greater },
+            .{ ">=", .greater_equals },
+            .{ "&&", .and_ },
+            .{ "||", .or_ },
         };
 
         for (tokens) |pair| {
@@ -87,7 +101,8 @@ pub const Token = struct {
     Column: u32 = 0,
 
     pub fn toString(self: *const Token, allcator: std.mem.Allocator) LexerErrors![]const u8 {
-        return allocPrint(allcator, "{{ Type: {s}, Data: {s}, Line: {d}, Column: 0 }}\n", .{ @tagName(self.Type), self.Data orelse "", self.Line + 1 });
+        // return allocPrint(allcator, "{{ Type: {s}, Data: {s}, Line: {d}, Column: 0 }}\n", .{ @tagName(self.Type), self.Data orelse "", self.Line + 1 });
+        return allocPrint(allcator, "{s}: {s} ({d},0)\n", .{ @tagName(self.Type), self.Data orelse "", self.Line + 1 });
     }
 };
 

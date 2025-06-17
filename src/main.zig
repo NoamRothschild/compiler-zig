@@ -1,7 +1,8 @@
 pub fn main() !void {
     const allocator = std.heap.page_allocator;
     var lexer = Lexer{
-        .rootfile = "lang-snippets/test-imports.noasm",
+        // .rootfile = "lang-snippets/test-imports.noasm",
+        .rootfile = "lang-snippets/test-ast.noams",
         .allocator = allocator,
     };
 
@@ -10,7 +11,7 @@ pub fn main() !void {
         return err;
     };
 
-    for (lexer.tokens.?.items) |tok| {
+    for (lexer.tokens.items) |tok| {
         const formatted = try tok.toString(allocator);
         defer allocator.free(formatted);
         std.debug.print("{s}", .{formatted});
