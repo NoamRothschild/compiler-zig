@@ -28,6 +28,12 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    const ast_mod = b.createModule(.{
+        .root_source_file = b.path("src/ast/root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
     // We will also create a module for our other entry point, 'main.zig'.
     const exe_mod = b.createModule(.{
         // `root_source_file` is the Zig "entry point" of the module. If a module
@@ -43,11 +49,12 @@ pub fn build(b: *std.Build) void {
     // This is what allows Zig source code to use `@import("foo")` where 'foo' is not a
     // file path. In this case, we set up `exe_mod` to import `lexer_mod`.
     exe_mod.addImport("lexer", lexer_mod);
+    exe_mod.addImport("ast", ast_mod);
 
     // Now, we will create a static library based on the module we created above.
     // This creates a `std.Build.Step.Compile`, which is the build step responsible
     // for actually invoking the compiler.
-    const lib = b.addLibrary(.{
+    const lexer_lib = b.addLibrary(.{
         .linkage = .static,
         .name = "compiler",
         .root_module = lexer_mod,
@@ -56,7 +63,15 @@ pub fn build(b: *std.Build) void {
     // This declares intent for the library to be installed into the standard
     // location when the user invokes the "install" step (the default step when
     // running `zig build`).
-    b.installArtifact(lib);
+    b.installArtifact(lexer_lib);
+
+    const ast_lib = b.addLibrary(.{
+        .linkage = .static,
+        .name = "compiler",
+        .root_module = ast_mod,
+    });
+
+    b.installArtifact(ast_lib);
 
     // This creates another `std.Build.Step.Compile`, but this one builds an executable
     // rather than a static library.
@@ -95,11 +110,13 @@ pub fn build(b: *std.Build) void {
 
     // Creates a step for unit testing. This only builds the test executable
     // but does not run it.
-    const lib_unit_tests = b.addTest(.{
+    const run_lexer_lib_unit_tests = b.addRunArtifact(b.addTest(.{
         .root_module = lexer_mod,
-    });
+    }));
 
-    const run_lib_unit_tests = b.addRunArtifact(lib_unit_tests);
+    const run_ast_lib_unit_tests = b.addRunArtifact(b.addTest(.{
+        .root_module = ast_mod,
+    }));
 
     const exe_unit_tests = b.addTest(.{
         .root_module = exe_mod,
@@ -111,6 +128,7 @@ pub fn build(b: *std.Build) void {
     // the `zig build --help` menu, providing a way for the user to request
     // running the unit tests.
     const test_step = b.step("test", "Run unit tests");
-    test_step.dependOn(&run_lib_unit_tests.step);
+    test_step.dependOn(&run_lexer_lib_unit_tests.step);
+    test_step.dependOn(&run_ast_lib_unit_tests.step);
     test_step.dependOn(&run_exe_unit_tests.step);
 }
