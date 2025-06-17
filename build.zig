@@ -58,6 +58,15 @@ pub fn build(b: *std.Build) void {
     exe_mod.addImport("ast", ast_mod);
     exe_mod.addImport("parser", parser_mod);
 
+    lexer_mod.addImport("ast", ast_mod);
+    lexer_mod.addImport("parser", parser_mod);
+
+    ast_mod.addImport("lexer", lexer_mod);
+    ast_mod.addImport("parser", parser_mod);
+
+    parser_mod.addImport("lexer", lexer_mod);
+    parser_mod.addImport("ast", ast_mod);
+
     // Now, we will create a static library based on the module we created above.
     // This creates a `std.Build.Step.Compile`, which is the build step responsible
     // for actually invoking the compiler.
