@@ -95,19 +95,19 @@ pub const Lexer = struct {
     }
 
     pub fn numberHandler(self: *Lexer) LexerErrors!void {
-        var end_index: usize = self.index + 1;
+        var end_index: usize = self.index;
         const filedata = self.filedata.?;
 
         while ((end_index + 1 < filedata.len) and
-            std.ascii.isDigit(filedata[end_index + 1]))
+            (std.ascii.isDigit(filedata[end_index + 1]) or filedata[end_index + 1] == '.'))
         {
             end_index += 1;
         }
 
-        const num = filedata[self.index..end_index];
+        const num = filedata[self.index .. end_index + 1];
 
         try addToken(self, .number, num);
-        self.index = end_index - 1;
+        self.index = end_index;
     }
 
     pub fn stringHandler(self: *Lexer) LexerErrors!void {
