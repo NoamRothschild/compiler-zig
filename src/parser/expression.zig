@@ -8,7 +8,7 @@ const Expression = @import("ast").Expression;
 const std = @import("std");
 
 pub fn parseExpression(parser: *Parser, bp: BindingPower) parserErrors!Expression {
-    const tok: Token = try parser.consumeToken();
+    const tok: Token = try parser.currentToken();
     const nudLookup = lookups.nudLookup;
     const bpLookup = lookups.bpLookup;
     const ledLookup = lookups.ledLookup;
@@ -26,7 +26,7 @@ pub fn parseExpression(parser: *Parser, bp: BindingPower) parserErrors!Expressio
         const val2 = ledLookup.?.get(newTok.Type);
 
         if (val2 == null) {
-            std.debug.print("nud handler expected for token {s}\n", .{@tagName(tok.Type)});
+            std.debug.print("led handler expected for token {s}, {any}\n", .{ @tagName(tok.Type), tok.Data });
             unreachable;
         }
 

@@ -25,7 +25,7 @@ pub const Parser = struct {
     }
 
     pub fn parse(self: *Parser) !Statement {
-        _ = try parseExpression(self, .deafult_bp);
+        _ = try parseExpression(self, .primary);
 
         // NOTE: we return body.items but the arraylist was never free'ed
         const Body = std.ArrayList(Statement).init(self.Allocator);
