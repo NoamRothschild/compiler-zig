@@ -13,7 +13,7 @@ pub const Parser = struct {
     Allocator: std.mem.Allocator,
 
     pub fn init(allocator: std.mem.Allocator, tokens: []Token) Parser {
-        Lookups.initTables(allocator);
+        try Lookups.initTables(allocator);
 
         return Parser{
             .Tokens = tokens,

@@ -16,7 +16,11 @@ pub fn main() !void {
         defer allocator.free(formatted);
         std.debug.print("{s}", .{formatted});
     }
+
+    var parser = Parser.init(allocator, lexer.tokens.items);
+    try parser.parse();
 }
 
 const std = @import("std");
 const Lexer = @import("lexer").Lexer;
+const Parser = @import("parser").Parser;
