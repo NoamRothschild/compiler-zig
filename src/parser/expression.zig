@@ -63,8 +63,8 @@ pub fn parseBinaryExpression(parser: *Parser, left: Expression, bp: BindingPower
     const right = parseExpression(parser, bp);
 
     return Expression{ .Binary = .{
-        .Left = left,
+        .Left = &left,
         .Operator = operatorToken,
-        .Right = right,
+        .Right = &right,
     } };
 }

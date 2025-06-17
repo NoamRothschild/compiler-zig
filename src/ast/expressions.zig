@@ -8,4 +8,4 @@ pub const StringExpression = struct { val: []const u8 };
 
 pub const SymbolExpression = struct { val: []const u8 };
 
-pub const BinaryExpression = struct { Left: Expression, Operator: Token, Right: Expression };
+pub const BinaryExpression = struct { Left: *Expression, Operator: Token, Right: *Expression };
