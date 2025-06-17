@@ -20,9 +20,12 @@ pub const BindingPower = enum(u8) {
     primary,
 };
 
-const StatementHandler = fn (*Parser) error.IndexOutOfBounds!Statement;
-const NudHandler = fn (*Parser) error.IndexOutOfBounds!Expression;
-const LedHandler = fn (*Parser, Expression, BindingPower) error.IndexOutOfBounds!Expression;
+pub const parserErrors = error{
+    IndexOutOfBounds,
+};
+const StatementHandler = *const fn (*Parser) parserErrors!Statement;
+const NudHandler = *const fn (*Parser) parserErrors!Expression;
+const LedHandler = *const fn (*Parser, Expression, BindingPower) parserErrors!Expression;
 
 pub var statementLookup: ?std.AutoHashMap(TokenType, StatementHandler) = null;
 pub var nudLookup: ?std.AutoHashMap(TokenType, NudHandler) = null;
@@ -51,25 +54,25 @@ pub fn initTables(allocator: std.mem.Allocator) !void {
     bpLookup = std.AutoHashMap(TokenType, BindingPower).init(allocator);
 
     // logical
-    led(.and_, .logical, ExpressionParsers.parseBinaryExpression);
-    led(.or_, .logical, ExpressionParsers.parseBinaryExpression);
+    try led(.and_, .logical, ExpressionParsers.parseBinaryExpression);
+    try led(.or_, .logical, ExpressionParsers.parseBinaryExpression);
 
     // relational
-    led(.less, .relational, ExpressionParsers.parseBinaryExpression);
-    led(.less_equals, .relational, ExpressionParsers.parseBinaryExpression);
-    led(.greater, .relational, ExpressionParsers.parseBinaryExpression);
-    led(.greater_equals, .relational, ExpressionParsers.parseBinaryExpression);
-    led(.equality_check, .relational, ExpressionParsers.parseBinaryExpression);
-    led(.inequality_check, .relational, ExpressionParsers.parseBinaryExpression);
+    try led(.less, .relational, ExpressionParsers.parseBinaryExpression);
+    try led(.less_equals, .relational, ExpressionParsers.parseBinaryExpression);
+    try led(.greater, .relational, ExpressionParsers.parseBinaryExpression);
+    try led(.greater_equals, .relational, ExpressionParsers.parseBinaryExpression);
+    try led(.equality_check, .relational, ExpressionParsers.parseBinaryExpression);
+    try led(.inequality_check, .relational, ExpressionParsers.parseBinaryExpression);
 
     // additive && multiplicative
-    led(.plus, .additive, ExpressionParsers.parseBinaryExpression);
-    led(.subtract, .additive, ExpressionParsers.parseBinaryExpression);
-    led(.multiply, .multiplicative, ExpressionParsers.parseBinaryExpression);
-    led(.divide, .multiplicative, ExpressionParsers.parseBinaryExpression);
+    try led(.plus, .additive, ExpressionParsers.parseBinaryExpression);
+    try led(.subtract, .additive, ExpressionParsers.parseBinaryExpression);
+    try led(.multiply, .multiplicative, ExpressionParsers.parseBinaryExpression);
+    try led(.divide, .multiplicative, ExpressionParsers.parseBinaryExpression);
 
     // literals && symbols
-    nud(.number, .primary, ExpressionParsers.parsePrimaryExpression);
-    nud(.string, .primary, ExpressionParsers.parsePrimaryExpression);
-    nud(.identifier, .primary, ExpressionParsers.parsePrimaryExpression);
+    try nud(.number, .primary, ExpressionParsers.parsePrimaryExpression);
+    try nud(.string, .primary, ExpressionParsers.parsePrimaryExpression);
+    try nud(.identifier, .primary, ExpressionParsers.parsePrimaryExpression);
 }
