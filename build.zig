@@ -1,163 +1,154 @@
 const std = @import("std");
 
-// Although this function looks imperative, note that its job is to
-// declaratively construct a build graph that will be executed by an external
-// runner.
 pub fn build(b: *std.Build) void {
-    // Standard target options allows the person running `zig build` to choose
-    // what target to build for. Here we do not override the defaults, which
-    // means any target is allowed, and the default is native. Other options
-    // for restricting supported target set are available.
-    const target = b.standardTargetOptions(.{});
+    const allocator = std.heap.page_allocator;
+    var builder = LibraryBuilder.init(
+        allocator,
+        b,
+        "src/main.zig",
+        "compiler",
+        3,
+        b.standardTargetOptions(.{}),
+        b.standardOptimizeOption(.{}),
+    ) catch |err| {
+        std.debug.print("Failed to initialize LibraryBuilder in build.zig, error: {s}\n", .{@errorName(err)});
+        unreachable;
+    };
 
-    // Standard optimization options allow the person running `zig build` to select
-    // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall. Here we do not
-    // set a preferred release mode, allowing the user to decide how to optimize.
-    const optimize = b.standardOptimizeOption(.{});
+    defer builder.deinit();
 
-    // This creates a "module", which represents a collection of source files alongside
-    // some compilation options, such as optimization mode and linked system libraries.
-    // Every executable or library we compile will be based on one or more modules.
-    const lexer_mod = b.createModule(.{
-        // `root_source_file` is the Zig "entry point" of the module. If a module
-        // only contains e.g. external object files, you can make this `null`.
-        // In this case the main source file is merely a path, however, in more
-        // complicated build scripts, this could be a generated file.
-        .root_source_file = b.path("src/lexer/root.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    builder.linkLibrary("src/lexer/root.zig", "lexer");
+    builder.linkLibrary("src/ast/root.zig", "ast");
+    builder.linkLibrary("src/parser/root.zig", "parser");
 
-    const ast_mod = b.createModule(.{
-        .root_source_file = b.path("src/ast/root.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    builder.bake();
+}
 
-    const parser_mod = b.createModule(.{
-        .root_source_file = b.path("src/parser/root.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+const ModuleType = struct {
+    name: []const u8,
+    module: *std.Build.Module,
+    libraryName: []const u8,
+};
 
-    // We will also create a module for our other entry point, 'main.zig'.
-    const exe_mod = b.createModule(.{
-        // `root_source_file` is the Zig "entry point" of the module. If a module
-        // only contains e.g. external object files, you can make this `null`.
-        // In this case the main source file is merely a path, however, in more
-        // complicated build scripts, this could be a generated file.
-        .root_source_file = b.path("src/main.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+const LibraryBuilder = struct {
+    b: *std.Build,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    allocator: std.mem.Allocator,
+    project_name: []const u8,
+    exe_mod: *std.Build.Module,
 
-    // Modules can depend on one another using the `std.Build.Module.addImport` function.
-    // This is what allows Zig source code to use `@import("foo")` where 'foo' is not a
-    // file path. In this case, we set up `exe_mod` to import `lexer_mod`.
-    exe_mod.addImport("lexer", lexer_mod);
-    exe_mod.addImport("ast", ast_mod);
-    exe_mod.addImport("parser", parser_mod);
+    moduleCount: u32 = undefined,
+    i: u32 = 0,
+    unit_tests: []*std.Build.Step.Run,
+    modules: []ModuleType,
 
-    lexer_mod.addImport("ast", ast_mod);
-    lexer_mod.addImport("parser", parser_mod);
+    pub fn init(allocator: std.mem.Allocator, b: *std.Build, root_source_file: []const u8, project_name: []const u8, moduleCount: u32, target: ?std.Build.ResolvedTarget, optimize: ?std.builtin.OptimizeMode) !LibraryBuilder {
+        const unit_tests = try allocator.alloc(*std.Build.Step.Run, moduleCount);
+        const modules = try allocator.alloc(ModuleType, moduleCount);
 
-    ast_mod.addImport("lexer", lexer_mod);
-    ast_mod.addImport("parser", parser_mod);
+        // give a default value
+        const realTarget = target orelse b.standardTargetOptions(.{});
+        const realOptimize = optimize orelse b.standardOptimizeOption(.{});
 
-    parser_mod.addImport("lexer", lexer_mod);
-    parser_mod.addImport("ast", ast_mod);
+        const exe_mod = b.createModule(.{
+            .root_source_file = b.path(root_source_file),
+            .target = realTarget,
+            .optimize = realOptimize,
+        });
 
-    // Now, we will create a static library based on the module we created above.
-    // This creates a `std.Build.Step.Compile`, which is the build step responsible
-    // for actually invoking the compiler.
-    const lexer_lib = b.addLibrary(.{
-        .linkage = .static,
-        .name = "compiler_lexer",
-        .root_module = lexer_mod,
-    });
-
-    // This declares intent for the library to be installed into the standard
-    // location when the user invokes the "install" step (the default step when
-    // running `zig build`).
-    b.installArtifact(lexer_lib);
-
-    const ast_lib = b.addLibrary(.{
-        .linkage = .static,
-        .name = "compiler_ast",
-        .root_module = ast_mod,
-    });
-
-    b.installArtifact(ast_lib);
-
-    const parser_lib = b.addLibrary(.{
-        .linkage = .static,
-        .name = "compiler_parser",
-        .root_module = parser_mod,
-    });
-
-    b.installArtifact(parser_lib);
-
-    // This creates another `std.Build.Step.Compile`, but this one builds an executable
-    // rather than a static library.
-    const exe = b.addExecutable(.{
-        .name = "compiler",
-        .root_module = exe_mod,
-    });
-
-    // This declares intent for the executable to be installed into the
-    // standard location when the user invokes the "install" step (the default
-    // step when running `zig build`).
-    b.installArtifact(exe);
-
-    // This *creates* a Run step in the build graph, to be executed when another
-    // step is evaluated that depends on it. The next line below will establish
-    // such a dependency.
-    const run_cmd = b.addRunArtifact(exe);
-
-    // By making the run step depend on the install step, it will be run from the
-    // installation directory rather than directly from within the cache directory.
-    // This is not necessary, however, if the application depends on other installed
-    // files, this ensures they will be present and in the expected location.
-    run_cmd.step.dependOn(b.getInstallStep());
-
-    // This allows the user to pass arguments to the application in the build
-    // command itself, like this: `zig build run -- arg1 arg2 etc`
-    if (b.args) |args| {
-        run_cmd.addArgs(args);
+        return LibraryBuilder{
+            .b = b,
+            .target = realTarget,
+            .optimize = realOptimize,
+            .allocator = allocator,
+            .project_name = project_name,
+            .exe_mod = exe_mod,
+            .moduleCount = moduleCount,
+            .unit_tests = unit_tests,
+            .modules = modules,
+        };
     }
 
-    // This creates a build step. It will be visible in the `zig build --help` menu,
-    // and can be selected like this: `zig build run`
-    // This will evaluate the `run` step rather than the default, which is "install".
-    const run_step = b.step("run", "Run the app");
-    run_step.dependOn(&run_cmd.step);
+    pub fn deinit(self: *LibraryBuilder) void {
+        self.allocator.free(self.unit_tests);
+        defer self.allocator.free(self.modules);
 
-    // Creates a step for unit testing. This only builds the test executable
-    // but does not run it.
-    const run_lexer_lib_unit_tests = b.addRunArtifact(b.addTest(.{
-        .root_module = lexer_mod,
-    }));
+        for (self.modules) |module| {
+            self.allocator.free(module.libraryName);
+        }
+    }
 
-    const run_ast_lib_unit_tests = b.addRunArtifact(b.addTest(.{
-        .root_module = ast_mod,
-    }));
+    pub fn linkLibrary(self: *LibraryBuilder, root_file: []const u8, import_name: []const u8) void {
+        const new_module = self.b.createModule(.{
+            .root_source_file = self.b.path(root_file),
+            .target = self.target,
+            .optimize = self.optimize,
+        });
 
-    const run_parser_lib_unit_tests = b.addRunArtifact(b.addTest(.{
-        .root_module = parser_mod,
-    }));
+        self.exe_mod.addImport(import_name, new_module);
+        self.modules[self.i].module = new_module;
+        self.modules[self.i].name = import_name;
+        self.modules[self.i].libraryName = self.libraryName(import_name) catch {
+            unreachable;
+        };
 
-    const exe_unit_tests = b.addTest(.{
-        .root_module = exe_mod,
-    });
+        const new_library = self.b.addLibrary(.{
+            .linkage = .static,
+            .name = self.modules[self.i].libraryName,
+            .root_module = new_module,
+        });
 
-    const run_exe_unit_tests = b.addRunArtifact(exe_unit_tests);
+        self.b.installArtifact(new_library);
 
-    // Similar to creating the run step earlier, this exposes a `test` step to
-    // the `zig build --help` menu, providing a way for the user to request
-    // running the unit tests.
-    const test_step = b.step("test", "Run unit tests");
-    test_step.dependOn(&run_lexer_lib_unit_tests.step);
-    test_step.dependOn(&run_ast_lib_unit_tests.step);
-    test_step.dependOn(&run_parser_lib_unit_tests.step);
-    test_step.dependOn(&run_exe_unit_tests.step);
-}
+        const run_new_library_unit_tests = self.b.addRunArtifact(self.b.addTest(.{
+            .root_module = new_module,
+        }));
+
+        self.unit_tests[self.i] = run_new_library_unit_tests;
+        self.i += 1;
+    }
+
+    pub fn bake(self: *LibraryBuilder) void {
+        for (self.modules) |module| {
+            for (self.modules) |module2| {
+                if (std.mem.eql(u8, module.name, module2.name)) continue;
+                module.module.addImport(module2.name, module2.module);
+            }
+        }
+
+        const exe = self.b.addExecutable(.{
+            .name = self.project_name,
+            .root_module = self.exe_mod,
+        });
+
+        self.b.installArtifact(exe);
+
+        // adding the run command to the build
+        const run_cmd = self.b.addRunArtifact(exe);
+        run_cmd.step.dependOn(self.b.getInstallStep());
+        if (self.b.args) |args| {
+            run_cmd.addArgs(args);
+        }
+
+        const run_step = self.b.step("run", "Run the app");
+        run_step.dependOn(&run_cmd.step);
+
+        // adding the testing command to the build
+        const exe_unit_tests = self.b.addTest(.{
+            .root_module = self.exe_mod,
+        });
+
+        const run_exe_unit_tests = self.b.addRunArtifact(exe_unit_tests);
+
+        const test_step = self.b.step("test", "Run unit tests");
+        for (self.unit_tests) |unit_test| {
+            test_step.dependOn(&unit_test.step);
+        }
+        test_step.dependOn(&run_exe_unit_tests.step);
+    }
+
+    fn libraryName(self: *LibraryBuilder, name: []const u8) ![]const u8 {
+        return std.fmt.allocPrint(self.allocator, "{s}_{s}", .{ self.project_name, name });
+    }
+};
