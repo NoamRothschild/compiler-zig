@@ -18,9 +18,11 @@ pub fn main() !void {
     }
 
     var parser = try Parser.init(allocator, lexer.tokens.items);
-    _ = try parser.parse();
+    const resultingAst = try parser.parse();
+    printAst(resultingAst, 0);
 }
 
 const std = @import("std");
 const Lexer = @import("lexer").Lexer;
 const Parser = @import("parser").Parser;
+const printAst = @import("parser").printStatementTree;

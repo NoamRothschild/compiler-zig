@@ -100,9 +100,13 @@ pub const Token = struct {
     Line: u32 = 0,
     Column: u32 = 0,
 
-    pub fn toString(self: *const Token, allcator: std.mem.Allocator) LexerErrors![]const u8 {
-        // return allocPrint(allcator, "{{ Type: {s}, Data: {s}, Line: {d}, Column: 0 }}\n", .{ @tagName(self.Type), self.Data orelse "", self.Line + 1 });
-        return allocPrint(allcator, "{s}: {s} ({d},0)\n", .{ @tagName(self.Type), self.Data orelse "", self.Line + 1 });
+    pub fn toString(self: *const Token, allocator: std.mem.Allocator) LexerErrors![]const u8 {
+        // return allocPrint(allocator, "{{ Type: {s}, Data: {s}, Line: {d}, Column: 0 }}\n", .{ @tagName(self.Type), self.Data orelse "", self.Line + 1 });
+        return allocPrint(allocator, "{s}: {s} ({d},0)\n", .{ @tagName(self.Type), self.Data orelse "", self.Line + 1 });
+    }
+
+    pub fn show(self: *const Token) void {
+        std.debug.print("{s}: {s} ({d},0)\n", .{ @tagName(self.Type), self.Data orelse "", self.Line + 1 });
     }
 };
 

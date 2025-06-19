@@ -8,6 +8,7 @@ const Lookups = @import("lookups.zig");
 const parseExpression = @import("expression.zig").parseExpression;
 const BindingPower = @import("lookups.zig").BindingPower;
 const parserErrors = @import("lookups.zig").parserErrors;
+pub const printStatementTree = @import("statement.zig").printStatementTree;
 
 pub const Parser = struct {
     Tokens: []const Token,
@@ -25,19 +26,24 @@ pub const Parser = struct {
     }
 
     pub fn parse(self: *Parser) !Statement {
-        _ = try parseExpression(self, .primary);
-
         // NOTE: we return body.items but the arraylist was never free'ed
-        const Body = std.ArrayList(Statement).init(self.Allocator);
+        var Body = std.ArrayList(Statement).init(self.Allocator);
 
-        // while (try hasTokens(self)) {
-        //     try Body.append(parseStatement(self));
-        // }
+        while (try hasTokens(self)) {
+            try Body.append(try parseStatement(self));
+        }
 
         // return a scope statement
         return Statement{ .Scope = .{
             .Body = Body.items,
         } };
+    }
+
+    pub fn expect(self: *Parser, expectedType: TokenType) !void {
+        if (try self.currentTokenType() != expectedType) {
+            std.debug.print("Expected {s} token but got {s} instead.\n", .{ @tagName(expectedType), @tagName(try self.currentTokenType()) });
+            (try self.currentToken()).show();
+        }
     }
 
     /// returns the current token
@@ -62,6 +68,8 @@ pub const Parser = struct {
 
     /// returns if we still have tokens remaining to parse
     pub fn hasTokens(self: *Parser) !bool {
-        return self.Pos < self.Tokens.len;
+        if (self.Pos >= self.Tokens.len) return false;
+        const token = try self.currentToken();
+        return token.Type != .line_terminator; //TODO: THIS IS WRONG!! DELETE
     }
 };
