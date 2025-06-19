@@ -37,6 +37,8 @@ pub const Lexer = struct {
                 'a'...'z', 'A'...'Z', '_' => try identifierHandler(self),
                 '0'...'9' => try numberHandler(self),
                 ';' => try addToken(self, .line_terminator, null),
+                '(' => try addToken(self, .open_args, null),
+                ')' => try addToken(self, .end_args, null),
                 '\r' => if (filedata[self.index + 1] == '\n') {
                     self.curr_line += 1;
                     self.index += 1;

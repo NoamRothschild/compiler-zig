@@ -73,4 +73,7 @@ pub fn initTables(allocator: std.mem.Allocator) !void {
     try nud(.number, .primary, ExpressionParsers.parsePrimaryExpression);
     try nud(.string, .primary, ExpressionParsers.parsePrimaryExpression);
     try nud(.identifier, .primary, ExpressionParsers.parsePrimaryExpression);
+
+    // parenthesis
+    try nud(.open_args, .primary, ExpressionParsers.parsePrimaryExpression);
 }

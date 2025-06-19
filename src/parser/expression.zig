@@ -55,6 +55,11 @@ pub fn parsePrimaryExpression(parser: *Parser) ParserErrors!Expression {
         .identifier => {
             return Expression{ .symbol = .{ .val = tok.data.? } };
         },
+        .open_args => {
+            const left = try parseExpression(parser, .default_bp);
+            try parser.expect(.end_args);
+            return left;
+        },
         else => {
             std.debug.print(
                 \\panic at `src/parser/expression.zig`
