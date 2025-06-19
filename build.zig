@@ -7,7 +7,7 @@ pub fn build(b: *std.Build) void {
         b,
         "src/main.zig",
         "compiler",
-        3,
+        4,
         b.standardTargetOptions(.{}),
         b.standardOptimizeOption(.{}),
     ) catch |err| {
@@ -17,17 +17,24 @@ pub fn build(b: *std.Build) void {
 
     defer builder.deinit();
 
-    builder.linkLibrary("src/lexer/root.zig", "lexer");
-    builder.linkLibrary("src/ast/root.zig", "ast");
-    builder.linkLibrary("src/parser/root.zig", "parser");
+    builder.linkLibrary("src/lexer/root.zig", "lexer", .ALL_LIBRARIES);
+    builder.linkLibrary("src/ast/root.zig", "ast", .ALL_LIBRARIES);
+    builder.linkLibrary("src/parser/root.zig", "parser", .ALL_LIBRARIES);
+    builder.linkLibrary("src/colored/root.zig", "colored", .NO_LIBRARIES);
 
     builder.bake();
 }
+
+const dependsOn = enum {
+    ALL_LIBRARIES,
+    NO_LIBRARIES,
+};
 
 const ModuleType = struct {
     name: []const u8,
     module: *std.Build.Module,
     libraryName: []const u8,
+    depends: dependsOn,
 };
 
 const LibraryBuilder = struct {
@@ -79,7 +86,7 @@ const LibraryBuilder = struct {
         }
     }
 
-    pub fn linkLibrary(self: *LibraryBuilder, root_file: []const u8, import_name: []const u8) void {
+    pub fn linkLibrary(self: *LibraryBuilder, root_file: []const u8, import_name: []const u8, option: dependsOn) void {
         const new_module = self.b.createModule(.{
             .root_source_file = self.b.path(root_file),
             .target = self.target,
@@ -89,6 +96,7 @@ const LibraryBuilder = struct {
         self.exe_mod.addImport(import_name, new_module);
         self.modules[self.i].module = new_module;
         self.modules[self.i].name = import_name;
+        self.modules[self.i].depends = option;
         self.modules[self.i].libraryName = self.libraryName(import_name) catch {
             unreachable;
         };
@@ -112,6 +120,7 @@ const LibraryBuilder = struct {
     pub fn bake(self: *LibraryBuilder) void {
         for (self.modules) |module| {
             for (self.modules) |module2| {
+                if (module.depends == .NO_LIBRARIES) continue;
                 if (std.mem.eql(u8, module.name, module2.name)) continue;
                 module.module.addImport(module2.name, module2.module);
             }
