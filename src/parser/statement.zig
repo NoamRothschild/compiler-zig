@@ -77,6 +77,26 @@ pub fn printExpressionTree(expression: Expression, base_padding: u32) void {
     }
 }
 
+pub fn evalExpression(expression: Expression) f64 {
+    switch (expression) {
+        .binary => {
+            const left = evalExpression(expression.binary.left.*);
+            const right = evalExpression(expression.binary.right.*);
+            return switch (expression.binary.operator.type) {
+                .plus => left + right,
+                .subtract => left - right,
+                .multiply => left * right,
+                .divide => left / right,
+                else => unreachable,
+            };
+        },
+        .number => {
+            return expression.number.val;
+        },
+        else => unreachable,
+    }
+}
+
 fn indent(amount: u32) void {
     for (0..amount) |_| {
         std.debug.print(" ", .{});

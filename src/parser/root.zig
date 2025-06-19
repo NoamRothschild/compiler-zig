@@ -9,6 +9,7 @@ const parseExpression = @import("expression.zig").parseExpression;
 const BindingPower = @import("lookups.zig").BindingPower;
 const ParserErrors = @import("errors.zig").ParserErrors;
 pub const printStatementTree = @import("statement.zig").printStatementTree;
+pub const evalExpression = @import("statement.zig").evalExpression;
 
 pub const Parser = struct {
     tokens: []const Token,
