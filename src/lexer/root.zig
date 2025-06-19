@@ -12,13 +12,13 @@ pub const Lexer = struct {
     rootfile: []const u8 = undefined,
     allocator: std.mem.Allocator,
     filedata: ?[]const u8 = null,
-    forceFile: bool = true,
+    force_file: bool = true,
     tokens: std.ArrayList(Token) = undefined,
-    currLine: u32 = 0,
+    curr_line: u32 = 0,
     index: usize = 0,
 
     pub fn tokenize(self: *Lexer) !void {
-        if (self.forceFile) {
+        if (self.force_file) {
             const file = try std.fs.cwd().openFile(self.rootfile, .{});
             defer file.close();
             self.filedata = try file.readToEndAlloc(self.allocator, std.math.maxInt(usize));
@@ -38,10 +38,10 @@ pub const Lexer = struct {
                 '0'...'9' => try numberHandler(self),
                 ';' => try addToken(self, .line_terminator, null),
                 '\r' => if (filedata[self.index + 1] == '\n') {
-                    self.currLine += 1;
+                    self.curr_line += 1;
                     self.index += 1;
                 },
-                '\n' => self.currLine += 1,
+                '\n' => self.curr_line += 1,
                 else => std.debug.print("Unknown token type: {c}, ord: {d}\n", .{ char, char }),
             }
         }
@@ -49,7 +49,7 @@ pub const Lexer = struct {
     }
 
     pub fn addToken(self: *Lexer, Type: TokenType, Data: ?[]const u8) LexerErrors!void {
-        try self.tokens.append(Token{ .Type = Type, .Data = Data, .Line = self.currLine });
+        try self.tokens.append(Token{ .type = Type, .data = Data, .line = self.curr_line });
     }
 
     pub fn identifierHandler(self: *Lexer) LexerErrors!void {
@@ -88,8 +88,8 @@ pub const Lexer = struct {
             }
         }
         const operator = filedata[self.index..end_index];
-        const operatorType = try TokenType.operatorFromString(operator);
-        try addToken(self, operatorType, operator);
+        const operator_type = try TokenType.operatorFromString(operator);
+        try addToken(self, operator_type, operator);
         self.index = end_index - 1;
     }
 
@@ -129,16 +129,16 @@ pub const Lexer = struct {
 
     pub fn importHandler(self: *Lexer) LexerErrors!void {
         const start_index: usize = self.index;
-        const relEnd = indexOf(u8, self.filedata.?[start_index + 1 ..], " ").?;
-        const tokenEnd = relEnd + 1 + start_index;
-        const tokenSlice = self.filedata.?[start_index..tokenEnd];
+        const rel_end = indexOf(u8, self.filedata.?[start_index + 1 ..], " ").?;
+        const token_end = rel_end + 1 + start_index;
+        const token_slice = self.filedata.?[start_index..token_end];
 
-        const importType = TokenType.fromString(tokenSlice);
-        if (importType == TokenType.identifier)
+        const import_type = TokenType.fromString(token_slice);
+        if (import_type == TokenType.identifier)
             return LexerErrors.UnknownToken;
 
-        try addToken(self, importType, tokenSlice);
-        self.index = tokenEnd;
+        try addToken(self, import_type, token_slice);
+        self.index = token_end;
     }
 };
 
@@ -154,15 +154,15 @@ pub const Lexer = struct {
 //     var lexer = Lexer{ .allocator = allocator, .forceFile = false, .filedata = fileData[0..] };
 //     var expected = std.ArrayList(Token).init(allocator);
 //     defer expected.deinit();
-//     try expected.append(Token{ .Type = .import_std, .Data = "@std.import", .Line = 1 });
-//     try expected.append(Token{ .Type = .string, .Data = "common/general.asm", .Line = 1 });
-//     try expected.append(Token{ .Type = .line_terminator, .Line = 1 });
-//     try expected.append(Token{ .Type = .import_relative, .Data = "@rel.import", .Line = 2 });
-//     try expected.append(Token{ .Type = .string, .Data = "common/debug.asm", .Line = 2 });
-//     try expected.append(Token{ .Type = .line_terminator, .Line = 2 });
+//     try expected.append(Token{ .type = .import_std, .data = "@std.import", .line = 1 });
+//     try expected.append(Token{ .type = .string, .data = "common/general.asm", .line = 1 });
+//     try expected.append(Token{ .type = .line_terminator, .line = 1 });
+//     try expected.append(Token{ .type = .import_relative, .data = "@rel.import", .line = 2 });
+//     try expected.append(Token{ .type = .string, .data = "common/debug.asm", .line = 2 });
+//     try expected.append(Token{ .type = .line_terminator, .line = 2 });
 
 //     lexer.tokenize() catch |err| {
-//         std.debug.print("Lexer error: {s} at line {}\n", .{ @errorName(err), lexer.currLine + 1 });
+//         std.debug.print("Lexer error: {s} at line {}\n", .{ @errorName(err), lexer.curr_line + 1 });
 //         return err;
 //     };
 

@@ -1,3 +1,7 @@
+const std = @import("std");
+const allocPrint = std.fmt.allocPrint;
+const LexerErrors = @import("errors.zig").LexerErrors;
+
 pub const TokenType = enum {
     import_std,
     import_relative,
@@ -96,21 +100,17 @@ pub const TokenType = enum {
 };
 
 pub const Token = struct {
-    Type: TokenType,
-    Data: ?[]const u8 = null,
-    Line: u32 = 0,
-    Column: u32 = 0,
+    type: TokenType,
+    data: ?[]const u8 = null,
+    line: u32 = 0,
+    column: u32 = 0,
 
     pub fn toString(self: *const Token, allocator: std.mem.Allocator) LexerErrors![]const u8 {
-        // return allocPrint(allocator, "{{ Type: {s}, Data: {s}, Line: {d}, Column: 0 }}\n", .{ @tagName(self.Type), self.Data orelse "", self.Line + 1 });
-        return allocPrint(allocator, "{s}: {s} ({d},0)\n", .{ @tagName(self.Type), self.Data orelse "", self.Line + 1 });
+        // return allocPrint(allocator, "{{ Type: {s}, Data: {s}, Line: {d}, Column: 0 }}\n", .{ @tagName(self.type), self.data orelse "", self.line + 1 });
+        return allocPrint(allocator, "{s}: {s} ({d},0)\n", .{ @tagName(self.type), self.data orelse "", self.line + 1 });
     }
 
     pub fn show(self: *const Token) void {
-        std.debug.print("{s}: {s} ({d},0)\n", .{ @tagName(self.Type), self.Data orelse "", self.Line + 1 });
+        std.debug.print("{s}: {s} ({d},0)\n", .{ @tagName(self.type), self.data orelse "", self.line + 1 });
     }
 };
-
-const std = @import("std");
-const allocPrint = std.fmt.allocPrint;
-const LexerErrors = @import("errors.zig").LexerErrors;

@@ -1,4 +1,4 @@
-pub const parserErrors = error{
+pub const ParserErrors = error{
     IndexOutOfBounds,
     OutOfMemory,
     InvalidFloatConversion,

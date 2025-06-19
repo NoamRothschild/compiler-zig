@@ -5,7 +5,7 @@ const Expression = @import("ast").Expression;
 const TokenType = @import("lexer").TokenType;
 const Token = @import("lexer").Token;
 const ExpressionParsers = @import("expression.zig");
-const parserErrors = @import("errors.zig").parserErrors;
+const ParserErrors = @import("errors.zig").ParserErrors;
 
 pub const BindingPower = enum(u8) {
     default_bp,
@@ -21,35 +21,35 @@ pub const BindingPower = enum(u8) {
     primary,
 };
 
-const StatementHandler = *const fn (*Parser) parserErrors!Statement;
-const NudHandler = *const fn (*Parser) parserErrors!Expression;
-const LedHandler = *const fn (*Parser, Expression, BindingPower) parserErrors!Expression;
+const statementHandler = *const fn (*Parser) ParserErrors!Statement;
+const nudHandler = *const fn (*Parser) ParserErrors!Expression;
+const ledHandler = *const fn (*Parser, Expression, BindingPower) ParserErrors!Expression;
 
-pub var statementLookup: ?std.AutoHashMap(TokenType, StatementHandler) = null;
-pub var nudLookup: ?std.AutoHashMap(TokenType, NudHandler) = null;
-pub var ledLookup: ?std.AutoHashMap(TokenType, LedHandler) = null;
-pub var bpLookup: ?std.AutoHashMap(TokenType, BindingPower) = null;
+pub var statement_lookup: ?std.AutoHashMap(TokenType, statementHandler) = null;
+pub var nud_lookup: ?std.AutoHashMap(TokenType, nudHandler) = null;
+pub var led_lookup: ?std.AutoHashMap(TokenType, ledHandler) = null;
+pub var bp_lookup: ?std.AutoHashMap(TokenType, BindingPower) = null;
 
-fn led(Ttype: TokenType, bp: BindingPower, ledFn: LedHandler) !void {
-    try bpLookup.?.put(Ttype, bp);
-    try ledLookup.?.put(Ttype, ledFn);
+fn led(Ttype: TokenType, bp: BindingPower, ledFn: ledHandler) !void {
+    try bp_lookup.?.put(Ttype, bp);
+    try led_lookup.?.put(Ttype, ledFn);
 }
 
-fn nud(Ttype: TokenType, bp: BindingPower, nudFn: NudHandler) !void {
-    try bpLookup.?.put(Ttype, bp);
-    try nudLookup.?.put(Ttype, nudFn);
+fn nud(Ttype: TokenType, bp: BindingPower, nudFn: nudHandler) !void {
+    try bp_lookup.?.put(Ttype, bp);
+    try nud_lookup.?.put(Ttype, nudFn);
 }
 
-fn statement(Ttype: TokenType, statementFn: StatementHandler) !void {
-    try bpLookup.?.put(Ttype, .default_bp);
-    try statementLookup.?.put(Ttype, statementFn);
+fn statement(Ttype: TokenType, statementFn: statementHandler) !void {
+    try bp_lookup.?.put(Ttype, .default_bp);
+    try statement_lookup.?.put(Ttype, statementFn);
 }
 
 pub fn initTables(allocator: std.mem.Allocator) !void {
-    statementLookup = std.AutoHashMap(TokenType, StatementHandler).init(allocator);
-    nudLookup = std.AutoHashMap(TokenType, NudHandler).init(allocator);
-    ledLookup = std.AutoHashMap(TokenType, LedHandler).init(allocator);
-    bpLookup = std.AutoHashMap(TokenType, BindingPower).init(allocator);
+    statement_lookup = std.AutoHashMap(TokenType, statementHandler).init(allocator);
+    nud_lookup = std.AutoHashMap(TokenType, nudHandler).init(allocator);
+    led_lookup = std.AutoHashMap(TokenType, ledHandler).init(allocator);
+    bp_lookup = std.AutoHashMap(TokenType, BindingPower).init(allocator);
 
     // logical
     try led(.and_, .logical, ExpressionParsers.parseBinaryExpression);

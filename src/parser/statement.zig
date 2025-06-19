@@ -8,9 +8,9 @@ const lookups = @import("lookups.zig");
 const parseExpression = @import("expression.zig").parseExpression;
 
 pub fn parseStatement(parser: *Parser) !Statement {
-    const statementLookup = lookups.statementLookup.?;
+    const statement_lookup = lookups.statement_lookup.?;
 
-    if (statementLookup.get(try parser.currentTokenType())) |statementFn| {
+    if (statement_lookup.get(try parser.currentTokenType())) |statementFn| {
         return statementFn(parser);
     }
 
@@ -18,20 +18,20 @@ pub fn parseStatement(parser: *Parser) !Statement {
     try parser.expect(.line_terminator);
 
     return Statement{
-        .Expression = .{ .Expression = expression },
+        .expression = expression,
     };
 }
 
 pub fn printStatementTree(statement: Statement, base_padding: u32) void {
     switch (statement) {
-        .Expression => {
+        .expression => {
             printIndented(base_padding, "expressionStatement {{\n", .{});
-            printExpressionTree(statement.Expression.Expression, base_padding + 2);
+            printExpressionTree(statement.expression, base_padding + 2);
             printIndented(base_padding, "}}\n", .{});
         },
-        .Scope => {
+        .scope => {
             printIndented(base_padding, "scopeStatement {{\n", .{});
-            for (statement.Scope.Body) |line| {
+            for (statement.scope.body) |line| {
                 printStatementTree(line, base_padding + 2);
             }
             printIndented(base_padding, "}}\n", .{});
@@ -42,38 +42,37 @@ pub fn printStatementTree(statement: Statement, base_padding: u32) void {
 pub fn printExpressionTree(expression: Expression, base_padding: u32) void {
     var padding = base_padding;
     switch (expression) {
-        .Binary => {
-            printIndented(padding, "binaryExpression {{\n", .{});
+        .binary => {
+            printIndented(base_padding, "binaryExpression {{\n", .{});
             padding += 2;
             printIndented(padding, "left: {{\n", .{});
-            printExpressionTree(expression.Binary.Left.*, padding + 2);
+            printExpressionTree(expression.binary.left.*, padding + 2);
             printIndented(padding, "}},\n", .{});
 
             printIndented(padding, "operator: {{\n", .{});
-            printIndented(padding + 2, "type: {s}\n", .{@tagName(expression.Binary.Operator.Type)});
-            printIndented(padding + 2, "value: {s}\n", .{expression.Binary.Operator.Data.?});
+            printIndented(padding + 2, "type: {s}\n", .{@tagName(expression.binary.operator.type)});
+            printIndented(padding + 2, "value: {s}\n", .{expression.binary.operator.data.?});
             printIndented(padding, "}},\n", .{});
 
             printIndented(padding, "right: {{\n", .{});
-            printExpressionTree(expression.Binary.Right.*, padding + 2);
+            printExpressionTree(expression.binary.right.*, padding + 2);
             printIndented(padding, "}}\n", .{});
-            padding -= 2;
-            printIndented(padding, "}}\n", .{});
+            printIndented(base_padding, "}}\n", .{});
         },
-        .Number => {
-            printIndented(padding, "numberExpression {{\n", .{});
-            printIndented(padding + 2, "value: {d}\n", .{expression.Number.val});
-            printIndented(padding, "}}\n", .{});
+        .number => {
+            printIndented(base_padding, "numberExpression {{\n", .{});
+            printIndented(padding + 2, "value: {d}\n", .{expression.number.val});
+            printIndented(base_padding, "}}\n", .{});
         },
-        .String => {
-            printIndented(padding, "stringExpression {{\n", .{});
-            printIndented(padding, "value: {s}\n", .{expression.String.val});
-            printIndented(padding, "}},\n", .{});
+        .string => {
+            printIndented(base_padding, "stringExpression {{\n", .{});
+            printIndented(padding, "value: {s}\n", .{expression.string.val});
+            printIndented(base_padding, "}},\n", .{});
         },
-        .Symbol => {
-            printIndented(padding + 2, "symbolExpression {{\n", .{});
-            printIndented(padding + 4, "value: {s}\n", .{expression.Symbol.val});
-            printIndented(padding, "}},\n", .{});
+        .symbol => {
+            printIndented(base_padding + 2, "symbolExpression {{\n", .{});
+            printIndented(padding + 4, "value: {s}\n", .{expression.symbol.val});
+            printIndented(base_padding, "}},\n", .{});
         },
     }
 }

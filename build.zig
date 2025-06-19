@@ -33,7 +33,7 @@ const dependsOn = enum {
 const ModuleType = struct {
     name: []const u8,
     module: *std.Build.Module,
-    libraryName: []const u8,
+    library_name: []const u8,
     depends: dependsOn,
 };
 
@@ -45,33 +45,33 @@ const LibraryBuilder = struct {
     project_name: []const u8,
     exe_mod: *std.Build.Module,
 
-    moduleCount: u32 = undefined,
+    module_count: u32 = undefined,
     i: u32 = 0,
     unit_tests: []*std.Build.Step.Run,
     modules: []ModuleType,
 
-    pub fn init(allocator: std.mem.Allocator, b: *std.Build, root_source_file: []const u8, project_name: []const u8, moduleCount: u32, target: ?std.Build.ResolvedTarget, optimize: ?std.builtin.OptimizeMode) !LibraryBuilder {
-        const unit_tests = try allocator.alloc(*std.Build.Step.Run, moduleCount);
-        const modules = try allocator.alloc(ModuleType, moduleCount);
+    pub fn init(allocator: std.mem.Allocator, b: *std.Build, root_source_file: []const u8, project_name: []const u8, module_count: u32, target: ?std.Build.ResolvedTarget, optimize: ?std.builtin.OptimizeMode) !LibraryBuilder {
+        const unit_tests = try allocator.alloc(*std.Build.Step.Run, module_count);
+        const modules = try allocator.alloc(ModuleType, module_count);
 
         // give a default value
-        const realTarget = target orelse b.standardTargetOptions(.{});
-        const realOptimize = optimize orelse b.standardOptimizeOption(.{});
+        const real_target = target orelse b.standardTargetOptions(.{});
+        const real_optimize = optimize orelse b.standardOptimizeOption(.{});
 
         const exe_mod = b.createModule(.{
             .root_source_file = b.path(root_source_file),
-            .target = realTarget,
-            .optimize = realOptimize,
+            .target = real_target,
+            .optimize = real_optimize,
         });
 
         return LibraryBuilder{
             .b = b,
-            .target = realTarget,
-            .optimize = realOptimize,
+            .target = real_target,
+            .optimize = real_optimize,
             .allocator = allocator,
             .project_name = project_name,
             .exe_mod = exe_mod,
-            .moduleCount = moduleCount,
+            .module_count = module_count,
             .unit_tests = unit_tests,
             .modules = modules,
         };
@@ -82,7 +82,7 @@ const LibraryBuilder = struct {
         defer self.allocator.free(self.modules);
 
         for (self.modules) |module| {
-            self.allocator.free(module.libraryName);
+            self.allocator.free(module.library_name);
         }
     }
 
@@ -97,13 +97,13 @@ const LibraryBuilder = struct {
         self.modules[self.i].module = new_module;
         self.modules[self.i].name = import_name;
         self.modules[self.i].depends = option;
-        self.modules[self.i].libraryName = self.libraryName(import_name) catch {
+        self.modules[self.i].library_name = self.libraryName(import_name) catch {
             unreachable;
         };
 
         const new_library = self.b.addLibrary(.{
             .linkage = .static,
-            .name = self.modules[self.i].libraryName,
+            .name = self.modules[self.i].library_name,
             .root_module = new_module,
         });
 

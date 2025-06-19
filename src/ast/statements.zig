@@ -1,6 +1,8 @@
-const Statement = @import("root.zig").Statement;
 const Expression = @import("root.zig").Expression;
 
-pub const ScopeStatement = struct { Body: []Statement };
+pub const StatementNode = union(enum) {
+    scope: ScopeStatement,
+    expression: Expression,
+};
 
-pub const ExpressionStatement = struct { Expression: Expression };
+pub const ScopeStatement = struct { body: []StatementNode };

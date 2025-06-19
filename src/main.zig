@@ -7,7 +7,7 @@ pub fn main() !void {
     };
 
     lexer.tokenize() catch |err| {
-        std.debug.print("Lexer error: {s} at line {}\n", .{ @errorName(err), lexer.currLine + 1 });
+        std.debug.print("Lexer error: {s} at line {}\n", .{ @errorName(err), lexer.curr_line + 1 });
         return err;
     };
 
@@ -18,11 +18,11 @@ pub fn main() !void {
     }
 
     var parser = try Parser.init(allocator, lexer.tokens.items);
-    const resultingAst = parser.parse() catch |err| {
+    const resulting_ast = parser.parse() catch |err| {
         std.debug.print("Parser error: {s}\n", .{@errorName(err)});
         return err;
     };
-    printAst(resultingAst, 0);
+    printAst(resulting_ast, 0);
 }
 
 const std = @import("std");
