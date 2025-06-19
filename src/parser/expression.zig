@@ -1,5 +1,6 @@
+const printExpressionTree = @import("statement.zig").printExpressionTree;
 const lookups = @import("lookups.zig");
-const parserErrors = lookups.parserErrors;
+const parserErrors = @import("errors.zig").parserErrors;
 const BindingPower = lookups.BindingPower;
 const Parser = @import("root.zig").Parser;
 const Token = @import("lexer").Token;
@@ -12,6 +13,7 @@ pub fn parseExpression(parser: *Parser, bp: BindingPower) parserErrors!Expressio
     const nudLookup = lookups.nudLookup;
     const bpLookup = lookups.bpLookup;
     const ledLookup = lookups.ledLookup;
+    // std.debug.print("Token {s} ({s}) (will call nud)\n", .{ tok.Data orelse "", @tagName(tok.Type) });
 
     const val = nudLookup.?.get(tok.Type);
     if (val == null) {
@@ -21,28 +23,29 @@ pub fn parseExpression(parser: *Parser, bp: BindingPower) parserErrors!Expressio
     const nudFn = val.?;
     var left = try nudFn(parser);
 
-    while (@intFromEnum(bpLookup.?.get(try parser.currentTokenType()).?) > @intFromEnum(bp)) {
+    while (@intFromEnum(bpLookup.?.get(try parser.currentTokenType()) orelse BindingPower.default_bp) > @intFromEnum(bp)) {
         const newTok: Token = try parser.currentToken();
         const val2 = ledLookup.?.get(newTok.Type);
+        // std.debug.print("Token {s} ({s}) (will call led)\n", .{ newTok.Data orelse "", @tagName(newTok.Type) });
 
         if (val2 == null) {
-            std.debug.print("led handler expected for token {s}, {any}\n", .{ @tagName(tok.Type), tok.Data });
+            std.debug.print("led handler expected for token {s}, {s}\n", .{ @tagName(tok.Type), tok.Data orelse "" });
             unreachable;
         }
 
         const ledFn = val2.?;
-        left = try ledFn(parser, left, bp);
+        left = try ledFn(parser, left, bpLookup.?.get(try parser.currentTokenType()).?);
     }
 
     return left;
 }
 
 pub fn parsePrimaryExpression(parser: *Parser) parserErrors!Expression {
-    const tok: Token = try parser.currentToken();
+    const tok: Token = try parser.consumeToken();
     switch (tok.Type) {
         .number => {
             const num: f64 = std.fmt.parseFloat(f64, tok.Data.?) catch {
-                return parserErrors.IndexOutOfBounds;
+                return parserErrors.InvalidFloatConversion;
             };
             return Expression{ .Number = .{ .val = num } };
         },
@@ -68,8 +71,8 @@ pub fn parseBinaryExpression(parser: *Parser, left: Expression, bp: BindingPower
     const right = try parseExpression(parser, bp);
 
     return Expression{ .Binary = .{
-        .Left = &left,
+        .Left = &((try parser.Allocator.dupe(Expression, &[_]Expression{left}))[0]),
         .Operator = operatorToken,
-        .Right = &right,
+        .Right = &((try parser.Allocator.dupe(Expression, &[_]Expression{right}))[0]),
     } };
 }

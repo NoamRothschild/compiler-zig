@@ -35,6 +35,7 @@ pub const TokenType = enum {
     less_equals,
     greater,
     greater_equals,
+    end_of_file,
 
     // TODO: ADD BELLOW TO NEXT FUNCTIONS
     string,

@@ -1,7 +1,7 @@
 pub fn main() !void {
     const allocator = std.heap.page_allocator;
     var lexer = Lexer{
-        // .rootfile = "lang-snippets/test-imports.noasm",
+        // .rootfile = "D:/Projects/ziglang/compiler/lang-snippets/test-ast.noams",
         .rootfile = "lang-snippets/test-ast.noams",
         .allocator = allocator,
     };
@@ -18,7 +18,10 @@ pub fn main() !void {
     }
 
     var parser = try Parser.init(allocator, lexer.tokens.items);
-    const resultingAst = try parser.parse();
+    const resultingAst = parser.parse() catch |err| {
+        std.debug.print("Parser error: {s}\n", .{@errorName(err)});
+        return err;
+    };
     printAst(resultingAst, 0);
 }
 

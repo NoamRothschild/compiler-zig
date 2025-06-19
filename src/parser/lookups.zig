@@ -5,6 +5,7 @@ const Expression = @import("ast").Expression;
 const TokenType = @import("lexer").TokenType;
 const Token = @import("lexer").Token;
 const ExpressionParsers = @import("expression.zig");
+const parserErrors = @import("errors.zig").parserErrors;
 
 pub const BindingPower = enum(u8) {
     default_bp,
@@ -20,7 +21,6 @@ pub const BindingPower = enum(u8) {
     primary,
 };
 
-pub const parserErrors = error{ IndexOutOfBounds, OutOfMemory };
 const StatementHandler = *const fn (*Parser) parserErrors!Statement;
 const NudHandler = *const fn (*Parser) parserErrors!Expression;
 const LedHandler = *const fn (*Parser, Expression, BindingPower) parserErrors!Expression;
@@ -35,8 +35,8 @@ fn led(Ttype: TokenType, bp: BindingPower, ledFn: LedHandler) !void {
     try ledLookup.?.put(Ttype, ledFn);
 }
 
-fn nud(Ttype: TokenType, _: BindingPower, nudFn: NudHandler) !void {
-    try bpLookup.?.put(Ttype, .primary);
+fn nud(Ttype: TokenType, bp: BindingPower, nudFn: NudHandler) !void {
+    try bpLookup.?.put(Ttype, bp);
     try nudLookup.?.put(Ttype, nudFn);
 }
 

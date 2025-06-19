@@ -7,7 +7,7 @@ const parseStatement = @import("statement.zig").parseStatement;
 const Lookups = @import("lookups.zig");
 const parseExpression = @import("expression.zig").parseExpression;
 const BindingPower = @import("lookups.zig").BindingPower;
-const parserErrors = @import("lookups.zig").parserErrors;
+const parserErrors = @import("errors.zig").parserErrors;
 pub const printStatementTree = @import("statement.zig").printStatementTree;
 
 pub const Parser = struct {
@@ -39,10 +39,13 @@ pub const Parser = struct {
         } };
     }
 
-    pub fn expect(self: *Parser, expectedType: TokenType) !void {
+    pub fn expect(self: *Parser, expectedType: TokenType) parserErrors!void {
         if (try self.currentTokenType() != expectedType) {
-            std.debug.print("Expected {s} token but got {s} instead.\n", .{ @tagName(expectedType), @tagName(try self.currentTokenType()) });
+            std.debug.print("Expected {s} token but got {s} instead.\nToken: ", .{ @tagName(expectedType), @tagName(try self.currentTokenType()) });
             (try self.currentToken()).show();
+            return parserErrors.UnexpectedToken;
+        } else {
+            _ = try self.consumeToken();
         }
     }
 
@@ -68,8 +71,6 @@ pub const Parser = struct {
 
     /// returns if we still have tokens remaining to parse
     pub fn hasTokens(self: *Parser) !bool {
-        if (self.Pos >= self.Tokens.len) return false;
-        const token = try self.currentToken();
-        return token.Type != .line_terminator; //TODO: THIS IS WRONG!! DELETE
+        return self.Pos < self.Tokens.len and (try self.currentTokenType()) != TokenType.end_of_file;
     }
 };

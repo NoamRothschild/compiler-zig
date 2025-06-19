@@ -45,8 +45,7 @@ pub const Lexer = struct {
                 else => std.debug.print("Unknown token type: {c}, ord: {d}\n", .{ char, char }),
             }
         }
-
-        return;
+        try addToken(self, .end_of_file, null);
     }
 
     pub fn addToken(self: *Lexer, Type: TokenType, Data: ?[]const u8) LexerErrors!void {

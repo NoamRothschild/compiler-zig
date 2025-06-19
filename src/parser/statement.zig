@@ -15,8 +15,7 @@ pub fn parseStatement(parser: *Parser) !Statement {
     }
 
     const expression = try parseExpression(parser, .default_bp);
-    // printExpressionTree(expression, 0);
-    // try parser.expect(.line_terminator);
+    try parser.expect(.line_terminator);
 
     return Statement{
         .Expression = .{ .Expression = expression },
@@ -24,62 +23,68 @@ pub fn parseStatement(parser: *Parser) !Statement {
 }
 
 pub fn printStatementTree(statement: Statement, base_padding: u32) void {
-    const print = std.debug.print;
-    const padding = base_padding;
     switch (statement) {
         .Expression => {
-            printExpressionTree(statement.Expression.Expression, padding + 2);
+            printIndented(base_padding, "expressionStatement {{\n", .{});
+            printExpressionTree(statement.Expression.Expression, base_padding + 2);
+            printIndented(base_padding, "}}\n", .{});
         },
         .Scope => {
-            var indent_buf: [256]u8 = undefined;
-            const indent = indent_buf[0..padding];
-            @memset(indent, ' ');
-            print("{s}scopeStatement {{\n", .{indent});
+            printIndented(base_padding, "scopeStatement {{\n", .{});
             for (statement.Scope.Body) |line| {
-                printStatementTree(line, padding + 2);
+                printStatementTree(line, base_padding + 2);
             }
-            print("{s}}}\n", .{indent});
+            printIndented(base_padding, "}}\n", .{});
         },
     }
 }
 
-fn printExpressionTree(expression: Expression, base_padding: u32) void {
-    const print = std.debug.print;
-    const padding = base_padding;
-    var indent_buf: [256]u8 = undefined;
-    const indent = indent_buf[0..padding];
-    @memset(indent, ' ');
-    print("{s}expressionStatement {{\n", .{indent});
+pub fn printExpressionTree(expression: Expression, base_padding: u32) void {
+    var padding = base_padding;
     switch (expression) {
         .Binary => {
-            print("{s}binaryExpression {{\n", .{indent});
-            print("{s}left: \n", .{indent});
+            printIndented(padding, "binaryExpression {{\n", .{});
+            padding += 2;
+            printIndented(padding, "left: {{\n", .{});
             printExpressionTree(expression.Binary.Left.*, padding + 2);
-            print("{s}}},\n", .{indent});
+            printIndented(padding, "}},\n", .{});
 
-            print("{s}operator: \n", .{indent});
-            print("{s} Type: {s}, Value: {s}\n", .{ indent, @tagName(expression.Binary.Operator.Type), expression.Binary.Operator.Data.? });
-            print("{s}}},\n", .{indent});
+            printIndented(padding, "operator: {{\n", .{});
+            printIndented(padding + 2, "type: {s}\n", .{@tagName(expression.Binary.Operator.Type)});
+            printIndented(padding + 2, "value: {s}\n", .{expression.Binary.Operator.Data.?});
+            printIndented(padding, "}},\n", .{});
 
-            print("{s}right: \n", .{indent});
+            printIndented(padding, "right: {{\n", .{});
             printExpressionTree(expression.Binary.Right.*, padding + 2);
-            print("{s}}},\n", .{indent});
+            printIndented(padding, "}}\n", .{});
+            padding -= 2;
+            printIndented(padding, "}}\n", .{});
         },
         .Number => {
-            print("{s}numberExpression {{\n", .{indent});
-            print("{s}value: {d}\n", .{ indent, expression.Number.val });
-            print("{s}}},\n", .{indent});
+            printIndented(padding, "numberExpression {{\n", .{});
+            printIndented(padding + 2, "value: {d}\n", .{expression.Number.val});
+            printIndented(padding, "}}\n", .{});
         },
         .String => {
-            print("{s}stringExpression {{\n", .{indent});
-            print("{s}value: {s}\n", .{ indent, expression.String.val });
-            print("{s}}},\n", .{indent});
+            printIndented(padding, "stringExpression {{\n", .{});
+            printIndented(padding, "value: {s}\n", .{expression.String.val});
+            printIndented(padding, "}},\n", .{});
         },
         .Symbol => {
-            print("{s}symbolExpression {{\n", .{indent});
-            print("{s}value: {s}\n", .{ indent, expression.Symbol.val });
-            print("{s}}},\n", .{indent});
+            printIndented(padding + 2, "symbolExpression {{\n", .{});
+            printIndented(padding + 4, "value: {s}\n", .{expression.Symbol.val});
+            printIndented(padding, "}},\n", .{});
         },
     }
-    print("{s}}}\n", .{indent});
+}
+
+fn indent(amount: u32) void {
+    for (0..amount) |_| {
+        std.debug.print(" ", .{});
+    }
+}
+
+fn printIndented(amount: u32, comptime fmt: []const u8, args: anytype) void {
+    indent(amount);
+    std.debug.print(fmt, args);
 }
