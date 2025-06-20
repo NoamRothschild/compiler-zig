@@ -23,7 +23,9 @@ pub fn main() !void {
         return err;
     };
     printAst(resulting_ast, 0);
-    std.debug.print("{s} = {d}", .{ lexer.filedata orelse "", evalExpression(resulting_ast.scope.body[0].expression) });
+    std.debug.print("{s} = {d}\n", .{ lexer.filedata orelse "", evalExpression(resulting_ast.scope.body[0].expression) });
+
+    statementToAsm(resulting_ast);
 }
 
 const std = @import("std");
@@ -31,3 +33,4 @@ const Lexer = @import("lexer").Lexer;
 const Parser = @import("parser").Parser;
 const printAst = @import("parser").printStatementTree;
 const evalExpression = @import("parser").evalExpression;
+const statementToAsm = @import("generator").statementToAsm;

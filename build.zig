@@ -7,7 +7,7 @@ pub fn build(b: *std.Build) void {
         b,
         "src/main.zig",
         "compiler",
-        4,
+        5,
         b.standardTargetOptions(.{}),
         b.standardOptimizeOption(.{}),
     ) catch |err| {
@@ -20,6 +20,7 @@ pub fn build(b: *std.Build) void {
     builder.linkLibrary("src/lexer/root.zig", "lexer", .ALL_LIBRARIES);
     builder.linkLibrary("src/ast/root.zig", "ast", .ALL_LIBRARIES);
     builder.linkLibrary("src/parser/root.zig", "parser", .ALL_LIBRARIES);
+    builder.linkLibrary("src/generator/root.zig", "generator", .ALL_LIBRARIES);
     builder.linkLibrary("src/colored/root.zig", "colored", .NO_LIBRARIES);
 
     builder.bake();
@@ -87,6 +88,11 @@ const LibraryBuilder = struct {
     }
 
     pub fn linkLibrary(self: *LibraryBuilder, root_file: []const u8, import_name: []const u8, option: dependsOn) void {
+        if (self.i >= self.module_count) {
+            std.debug.print("module count variable too small. ({d})", .{self.module_count});
+            unreachable;
+        }
+
         const new_module = self.b.createModule(.{
             .root_source_file = self.b.path(root_file),
             .target = self.target,
