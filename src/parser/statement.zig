@@ -82,11 +82,13 @@ pub fn evalExpression(expression: Expression) f64 {
         .binary => {
             const left = evalExpression(expression.binary.left.*);
             const right = evalExpression(expression.binary.right.*);
+            // std.debug.print("{d} {s} {d}\n", .{ left, expression.binary.operator.data.?, right });
             return switch (expression.binary.operator.type) {
                 .plus => left + right,
                 .subtract => left - right,
                 .multiply => left * right,
                 .divide => left / right,
+                .remainder => @rem(left, right),
                 else => unreachable,
             };
         },

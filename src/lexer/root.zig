@@ -33,7 +33,7 @@ pub const Lexer = struct {
                 '"' => try stringHandler(self),
                 '@' => try importHandler(self),
                 32, 9 => undefined, // ignore spaces and tabs
-                '+', '!', '-', '*', '/', '=' => try symbolHandler(self),
+                '+', '!', '-', '*', '/', '%', '=' => try symbolHandler(self),
                 'a'...'z', 'A'...'Z', '_' => try identifierHandler(self),
                 '0'...'9' => try numberHandler(self),
                 ';' => try addToken(self, .line_terminator, null),

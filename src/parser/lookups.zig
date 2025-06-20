@@ -68,6 +68,7 @@ pub fn initTables(allocator: std.mem.Allocator) !void {
     try led(.subtract, .additive, ExpressionParsers.parseBinaryExpression);
     try led(.multiply, .multiplicative, ExpressionParsers.parseBinaryExpression);
     try led(.divide, .multiplicative, ExpressionParsers.parseBinaryExpression);
+    try led(.remainder, .multiplicative, ExpressionParsers.parseBinaryExpression);
 
     // literals && symbols
     try nud(.number, .primary, ExpressionParsers.parsePrimaryExpression);
